@@ -1,0 +1,18 @@
+spring:
+  redis:
+    host: ${REDIS_HOST:redis}
+    port: 6379
+  application:
+    name: anomaly-api
+
+server:
+  port: 8081
+
+logging:
+  level:
+    com.watchtower: INFO
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
