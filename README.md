@@ -1,224 +1,289 @@
-WatchTower — Real-Time Anomaly Detection for Microservices
-WatchTower is a production-ready, event-driven microservices platform that detects anomalous behaviour in distributed systems using an online Isolation Forest model. Structured telemetry (latency, error rate, CPU, memory, user load) is streamed through Apache Kafka, scored in real time by a Python/Flask AI service, and stored in Redis for low-latency retrieval via a Spring Boot REST API.
+🛡️ WatchTower
+AI-Powered Real-Time Anomaly Detection for Microservices
+<p align="center"> <img src="https://img.shields.io/badge/Java-17-orange?style=for-the-badge&logo=openjdk"/> <img src="https://img.shields.io/badge/Spring_Boot-3.x-success?style=for-the-badge&logo=springboot"/> <img src="https://img.shields.io/badge/Python-3.14-blue?style=for-the-badge&logo=python"/> <img src="https://img.shields.io/badge/Apache-Kafka-black?style=for-the-badge&logo=apachekafka"/> <img src="https://img.shields.io/badge/Redis-red?style=for-the-badge&logo=redis"/> <img src="https://img.shields.io/badge/Docker-Compose-blue?style=for-the-badge&logo=docker"/> <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge"/> </p> <p align="center">
+⚡ Detect anomalies before your users do.
 
-This repository accompanies the manuscript:
+WatchTower is an intelligent, event-driven microservices platform that continuously monitors distributed systems and identifies abnormal behavior in milliseconds using Machine Learning.
 
-"WatchTower: A Real-Time Anomaly Detection Framework for Microservice-Based Applications" [submitted for journal review — 2025]
+Instead of waiting for outages, WatchTower predicts them.
 
-Features
-Real-time anomaly scoring via Isolation Forest (≤ 8.83 ms mean inference latency)
-Kafka-based asynchronous log ingestion — decoupled from detection
-Rule-based fallback detector active before the model is trained
-Redis result caching for instant API retrieval
-Spring Cloud (Eureka + API Gateway) for service discovery and routing
-Fully containerised: one docker-compose up starts the entire stack
-Reproducible evaluation pipeline producing all manuscript figures and tables
-Architecture
-┌──────────────┐   Kafka    ┌──────────────┐   HTTP    ┌──────────────┐
-│ Log Producer │──────────►│ Log Consumer │──────────►│  AI Service  │
-│ (Spring Boot)│           │ (Spring Boot)│           │  (Flask/IF)  │
-└──────────────┘           └──────┬───────┘           └──────────────┘
-                                  │ Redis
-                           ┌──────▼───────┐
-                           │ Anomaly API  │◄── REST clients
-                           │ (Spring Boot)│
-                           └──────────────┘
-                                  ▲
-                           ┌──────┴───────┐
-                           │ API Gateway  │
-                           │(Spring Cloud)│
-                           └──────────────┘
-                           ┌──────────────┐
-                           │Eureka Server │ (service registry)
-                           └──────────────┘
-Services
-Service	Language	Port	Role
-log-producer	Java / Spring Boot	8080	Generates synthetic log events and publishes to Kafka
-log-consumer	Java / Spring Boot	8082	Consumes Kafka events, invokes AI service, stores results
-ai-service	Python / Flask	5000	Trains Isolation Forest, exposes /detect-anomalies
-anomaly-api	Java / Spring Boot	8081	Reads anomaly results from Redis, exposes REST API
-eureka-server	Java / Spring Boot	8761	Netflix Eureka service registry
-api-gateway	Java / Spring Cloud	8085	Single entry point; routes to all backend services
-Infrastructure: Apache Kafka (port 9092), Zookeeper (2181), Redis (6379).
+🎥 Demo
 
-Tech Stack
-Layer	Technology
-Message broker	Apache Kafka 7.4 (Confluent)
-Cache / store	Redis 7
-AI / ML	Python 3.14, Flask, scikit-learn (Isolation Forest)
-Microservices	Java 17, Spring Boot 3, Spring Cloud
-Service discovery	Netflix Eureka
-API routing	Spring Cloud Gateway
-Containerisation	Docker, Docker Compose
-Evaluation	Python: pandas, numpy, scipy, matplotlib
-Prerequisites
-Tool	Minimum version	Notes
-Docker Desktop	24	Required for docker-compose
-Docker Compose	2.20	Bundled with Docker Desktop
-Java JDK	17	Only needed to build services outside Docker
-Maven	3.9	Or use the included ./mvnw wrapper
-Python	3.10+	Only needed to run evaluation scripts
-Installation
-git clone https://github.com/hrsvd/microservices-anomaly-detection.git
-cd microservices-anomaly-detection
-Install Python evaluation dependencies (optional — only for running experiments):
+Imagine a production environment where thousands of events flow every second.
 
-pip install -r requirements.txt
-Running with Docker (Recommended)
-This is the simplest way to start the full stack.
+Microservice Logs
+        │
+        ▼
+ Apache Kafka
+        │
+        ▼
+ Log Consumer
+        │
+        ▼
+ AI Detection Engine
+(Isolation Forest)
+        │
+        ▼
+ Redis Cache
+        │
+        ▼
+ REST API
+        │
+        ▼
+ Dashboard / Monitoring Tools
+🌟 Why WatchTower?
 
-docker-compose up --build
-All eight containers start in dependency order. The Kafka broker, Eureka registry, and Redis must be healthy before the application services start.
+Modern applications generate millions of logs every day.
 
-Verify the stack is running:
+Finding one problematic service among hundreds is like finding a needle in a haystack.
 
-http://localhost:8761          # Eureka dashboard — all services should appear
-http://localhost:5000/health   # AI service health check
-http://localhost:8081/anomalies # Anomaly results API
-http://localhost:8085          # API Gateway entry point
-Stop the stack:
+WatchTower automates this process using Artificial Intelligence.
 
-docker-compose down
-Stop and remove all data volumes:
+Instead of manually inspecting logs, it:
 
-docker-compose down -v
-Running Locally (without Docker)
-1. Start infrastructure
-# Kafka + Zookeeper + Redis (requires Docker)
-docker-compose up -d zookeeper kafka redis
+✅ Collects telemetry
 
-# Create Kafka topics
-bash kafka/create-topics.sh
-2. Start the AI service
-cd ai-service
-pip install -r requirements.txt
-python app.py
-3. Start Spring Boot services (in separate terminals)
-# Eureka Server (start first)
-cd eureka-server && ./mvnw spring-boot:run
+✅ Learns normal behaviour
 
-# Log Producer
-cd log-producer && ./mvnw spring-boot:run
+✅ Detects anomalies in real-time
 
-# Log Consumer
-cd log-consumer && ./mvnw spring-boot:run
+✅ Stores predictions instantly
 
-# Anomaly API
-cd anomaly-api && ./mvnw spring-boot:run
+✅ Exposes everything through REST APIs
 
-# API Gateway
-cd api-gateway && ./mvnw spring-boot:run
-Configuration
-Each Spring Boot service is configured via src/main/resources/application.yml.
+🚀 Features
 
-Key environment variables (also accepted by Docker Compose):
+✨ Real-Time AI Anomaly Detection
 
-Variable	Default	Used by
-SPRING_KAFKA_BOOTSTRAP_SERVERS	kafka:9092	log-producer, log-consumer
-REDIS_HOST	redis	log-consumer, anomaly-api
-AI_SERVICE_URL	http://ai-service:5000	log-consumer
-EUREKA_SERVER	http://eureka-server:8761/eureka/	ai-service
-EUREKA_CLIENT_SERVICEURL_DEFAULTZONE	http://eureka-server:8761/eureka/	api-gateway
-API Documentation
-AI Service (http://localhost:5000)
-POST /detect-anomalies
-Accepts a JSON array of log records and returns anomaly scores.
+📡 Kafka Event Streaming
 
-Request body:
+🧠 Online Isolation Forest Learning
 
-[
-  {
-    "serviceName": "OrderService",
-    "latency": 620,
-    "errorRate": 0.02,
-    "userCount": 150,
-    "memoryUsage": 72.4,
-    "cpuUsage": 58.1
-  }
-]
-Response:
+⚡ Redis Low-Latency Storage
 
-[
-  {
-    "serviceName": "OrderService",
-    "anomalyScore": 0.847,
-    "anomaly": true,
-    "timestamp": "2025-07-10T14:32:01.123"
-  }
-]
-GET /health
-Returns model status and readiness.
+🌍 Spring Cloud Gateway
 
-Anomaly API (http://localhost:8081)
-GET /anomalies
-Returns all anomaly results stored in Redis.
+🔍 Eureka Service Discovery
 
-Running Experiments
-The scripts/ directory contains the full reproducibility pipeline for the manuscript.
+📦 Dockerized Infrastructure
 
-# Run the complete evaluation pipeline (generates all figures and tables)
-python scripts/run_experiments.py
+📊 Experiment Reproduction Pipeline
 
-# Regenerate figures only (requires results/ to exist)
-python scripts/generate_figures.py
-See EXPERIMENTS.md for a step-by-step guide, expected outputs, and which manuscript sections each script supports.
+📈 Performance Benchmarking
 
-Reproducing Paper Results
-All quantitative results in the manuscript are reproducible from the pipeline above. Pre-computed outputs are stored in results/:
+🛠 Rule-Based Fallback Engine
 
-File	Contents	Manuscript section
-results/baseline_results.json	IF vs LOF vs OC-SVM vs Rule-Based metrics	Table II
-results/multi_run_results.json	10-seed mean ± std + paired t-test	Section 8.3
-results/threshold_report.json	Youden's J optimal threshold (0.3903)	Section 5.4
-results/sweep_results.csv	4×5 hyperparameter grid (n_estimators × contamination)	Section 6.4
-results/latency_report.json	Mean inference latency (8.83 ms)	Section 7.1
-Publication figures are in figures/ (Figures 2–6 of the manuscript).
+🏗 System Architecture
+                   +----------------------+
+                   |   Log Producer       |
+                   |  Spring Boot         |
+                   +----------+-----------+
+                              |
+                              |
+                     Apache Kafka
+                              |
+                              ▼
+                   +----------------------+
+                   |   Log Consumer       |
+                   +----------+-----------+
+                              |
+                              ▼
+                   +----------------------+
+                   | AI Detection Service |
+                   | Python + Flask       |
+                   | Isolation Forest     |
+                   +----------+-----------+
+                              |
+                    Prediction Results
+                              |
+                              ▼
+                        Redis Cache
+                              |
+                              ▼
+                  +----------------------+
+                  |  Anomaly REST API    |
+                  +----------+-----------+
+                              |
+                       API Gateway
+                              |
+                              ▼
+                        REST Clients
+🧠 AI Engine
 
-Project Structure
-microservices-anomaly-detection/
-├── ai-service/               Python Flask service — Isolation Forest model
-├── anomaly-api/              Spring Boot REST API — reads anomaly results
-├── api-gateway/              Spring Cloud Gateway — single entry point
-├── eureka-server/            Netflix Eureka service registry
-├── log-consumer/             Spring Boot Kafka consumer — calls AI service
-├── log-producer/             Spring Boot Kafka producer — synthetic log generator
-├── kafka/                    Kafka topic setup scripts
-├── scripts/                  Python evaluation pipeline
-│   ├── run_experiments.py    Master pipeline (runs all steps)
-│   ├── baselines.py          Baseline comparisons (IF/LOF/OC-SVM/Rule-Based)
-│   ├── derive_threshold.py   ROC/PR threshold derivation
-│   ├── generate_data.py      Synthetic dataset generator
-│   ├── generate_figures.py   Regenerates all publication figures
-│   ├── hyperparameter_sweep.py  n_estimators × contamination grid search
-│   ├── loghub_adapter.py     Maps Loghub public datasets to feature schema
-│   └── multi_run.py          10-seed multi-run + paired t-test
-├── results/                  Experiment outputs (JSON/CSV metric files)
-├── docs/                     Submission checklist and submission guide
-├── docker-compose.yml        Full-stack container orchestration
-├── requirements.txt          Python evaluation dependencies
-├── README.md                 This file
-├── EXPERIMENTS.md            Experiment reproduction guide
-Troubleshooting
-Kafka not ready / log-consumer exits immediately Kafka takes 30–60 seconds to initialise. On slow machines the consumer may start before the broker is ready. Re-run docker-compose up or add a manual delay.
+The intelligence behind WatchTower is powered by
 
-AI service not trained yet The model requires at least 50 log samples before training. The service falls back to rule-based detection automatically until then.
+Isolation Forest
+Online Learning
+Dynamic Thresholding
+Rule-Based Cold Start Detection
 
-Services not appearing in Eureka Check http://localhost:8761. Services register on startup and may take 30 seconds to appear. Verify the EUREKA_SERVER environment variable is correct.
+Input Features
 
-Python script: ModuleNotFoundError Install dependencies: pip install -r requirements.txt. Always run scripts from the project root: python scripts/run_experiments.py.
+Latency
 
-results/logs.csv not found Run python scripts/run_experiments.py first to generate the dataset and all intermediate results before running generate_figures.py standalone.
+CPU Usage
 
-License
-This project is licensed under the MIT License. See LICENSE for details.
+Memory Usage
 
-Citation
-If you use WatchTower or the accompanying evaluation pipeline in your research, please cite:
+User Count
 
-@misc{kushwah2026watchtower,
-  author = {Harshvardhan Kushwah},
-  title  = {WatchTower: A Real-Time Anomaly Detection Framework for Microservice-Based Applications},
-  year   = {2026},
-  note   = {Under review}
-Contributing
-Contributions are welcome. Please open an issue before submitting a pull request.
+Error Rate
+
+Output
+
+Anomaly Score
+
+True / False
+
+Timestamp
+
+Average inference latency
+
+⚡ 8.83 ms
+🏢 Tech Stack
+Category	Technologies
+Backend	Java 17, Spring Boot
+AI	Python, Flask, Scikit-Learn
+Messaging	Apache Kafka
+Database	Redis
+Cloud	Spring Cloud Gateway
+Discovery	Eureka
+Containerization	Docker
+Build	Maven
+ML	Isolation Forest
+Evaluation	Pandas, NumPy, Matplotlib
+📂 Project Structure
+WatchTower
+│
+├── ai-service
+├── anomaly-api
+├── api-gateway
+├── eureka-server
+├── kafka
+├── log-consumer
+├── log-producer
+├── scripts
+├── docs
+├── docker-compose.yml
+├── requirements.txt
+└── README.md
+⚡ Quick Start
+
+Clone
+
+git clone https://github.com/yourusername/watchtower.git
+
+cd watchtower
+
+Start Everything
+
+docker compose up --build
+
+Open
+
+http://localhost:8761
+
+Verify
+
+AI Service
+
+API Gateway
+
+Redis
+
+Kafka
+
+Spring Boot Services
+
+Everything starts automatically.
+
+🔥 Workflow
+Application
+
+↓
+
+Generate Logs
+
+↓
+
+Kafka Topic
+
+↓
+
+Consumer
+
+↓
+
+AI Prediction
+
+↓
+
+Redis
+
+↓
+
+REST API
+
+↓
+
+Monitoring Dashboard
+📊 Performance
+Metric	Result
+Average Detection Latency	8.83 ms
+Streaming	Real-Time
+Cache	Redis
+Architecture	Event Driven
+Deployment	Docker
+📸 Screenshots
+📷 Add
+
+• Eureka Dashboard
+
+• Docker Containers
+
+• Kafka UI
+
+• API Responses
+
+• Redis Insight
+
+• Terminal Demo
+
+• Architecture Diagram
+🎯 Future Roadmap
+Kubernetes Deployment
+Prometheus Metrics
+Grafana Dashboard
+OpenTelemetry Integration
+ELK Stack
+Jaeger Distributed Tracing
+Web Dashboard
+Explainable AI
+LSTM-based Detection
+Auto Scaling
+🤝 Contributing
+
+Pull Requests are welcome.
+
+If you'd like to improve WatchTower:
+
+Fork
+
+Create Feature Branch
+
+Commit Changes
+
+Push
+
+Open Pull Request
+📚 Research
+
+This repository accompanies the paper
+
+WatchTower: A Real-Time Anomaly Detection Framework for Microservice-Based Applications
+
+⭐ If you like this project
+
+Give it a ⭐
+
+It motivates future development.
